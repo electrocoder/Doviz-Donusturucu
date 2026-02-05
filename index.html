@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Döviz Dönüştürücü</title>
+    <title>Döviz Çevirici - TR Format</title>
     <style>
         :root {
-            --primary-color: #059669; /* USD Odaklı olduğu için yeşil tonu */
+            --primary-color: #059669;
             --bg-color: #f1f5f9;
             --card-bg: #ffffff;
             --text-color: #0f172a;
@@ -32,36 +32,18 @@
             max-width: 450px;
         }
 
-        h2 { 
-            text-align: center; 
-            margin-bottom: 1.5rem; 
-            color: var(--primary-color);
-            font-weight: 800;
-        }
+        h2 { text-align: center; margin-bottom: 1.5rem; color: var(--primary-color); font-weight: 800; }
 
-        .currency-row {
-            margin-bottom: 12px;
-            display: flex;
-            flex-direction: column;
-        }
+        .currency-row { margin-bottom: 12px; display: flex; flex-direction: column; }
 
         label {
-            font-size: 0.8rem;
-            font-weight: 700;
-            margin-bottom: 4px;
-            color: #64748b;
-            display: flex;
-            justify-content: space-between;
-            padding-left: 5px;
+            font-size: 0.8rem; font-weight: 700; margin-bottom: 4px; color: #64748b;
+            display: flex; justify-content: space-between; padding-left: 5px;
         }
 
         .input-group {
-            display: flex;
-            align-items: center;
-            border: 2px solid var(--border-color);
-            border-radius: 10px;
-            overflow: hidden;
-            transition: all 0.2s ease;
+            display: flex; align-items: center; border: 2px solid var(--border-color);
+            border-radius: 10px; overflow: hidden; transition: all 0.2s ease;
         }
 
         .input-group:focus-within {
@@ -70,41 +52,20 @@
         }
 
         input {
-            border: none;
-            padding: 12px;
-            width: 100%;
-            font-size: 1.1rem;
-            font-weight: 600;
-            outline: none;
-            background: transparent;
-        }
-
-        input::-webkit-outer-spin-button,
-        input::-webkit-inner-spin-button {
-            -webkit-appearance: none;
-            margin: 0;
+            border: none; padding: 12px; width: 100%; font-size: 1.1rem;
+            font-weight: 600; outline: none; background: transparent;
         }
 
         .currency-code {
-            padding: 0 15px;
-            font-weight: bold;
-            background: #f8fafc;
-            height: 48px;
-            display: flex;
-            align-items: center;
-            border-left: 1px solid var(--border-color);
-            min-width: 60px;
-            justify-content: center;
-            color: var(--primary-color);
+            padding: 0 15px; font-weight: bold; background: #f8fafc;
+            height: 48px; display: flex; align-items: center;
+            border-left: 1px solid var(--border-color); min-width: 60px;
+            justify-content: center; color: var(--primary-color);
         }
 
         .update-info {
-            font-size: 0.75rem;
-            text-align: center;
-            margin-top: 1.5rem;
-            color: #94a3b8;
-            border-top: 1px solid var(--border-color);
-            padding-top: 1rem;
+            font-size: 0.75rem; text-align: center; margin-top: 1.5rem;
+            color: #94a3b8; border-top: 1px solid var(--border-color); padding-top: 1rem;
         }
     </style>
 </head>
@@ -112,21 +73,22 @@
 
 <div class="container">
     <h2>Döviz Çevirici</h2>
-    
     <form id="converter-form" autocomplete="off" onsubmit="return false;">
-        <div id="converter-list">
-            </div>
+        <div id="converter-list"></div>
     </form>
-
-    <p class="update-info">
-        Veriler anlık olarak güncellenir • 1 USD Odaklı
-    </p>
+    <p class="update-info">Veriler anlık çekilir • Ondalık için virgül (,) kullanın</p>
 </div>
 
 <script>
     const currencies = ["TRY", "USD", "EUR", "GBP", "CHF", "JPY", "CAD", "AUD", "CNY", "SAR"];
     const listEl = document.getElementById('converter-list');
     let rates = {};
+
+    // TR Formatında sayı formatlama (virgüllü)
+    const trFormatter = new Intl.NumberFormat('tr-TR', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 4
+    });
 
     function initUI() {
         currencies.forEach(currency => {
@@ -135,7 +97,8 @@
             row.innerHTML = `
                 <label>${getCurrencyName(currency)} <span>${currency}</span></label>
                 <div class="input-group">
-                    <input type="number" id="${currency}" placeholder="0.00" step="any" autocomplete="off" inputmode="decimal">
+                    <input type="text" id="${currency}" placeholder="0,00" 
+                           autocomplete="off" inputmode="decimal">
                     <div class="currency-code">${getSymbol(currency)}</div>
                 </div>
             `;
@@ -145,37 +108,35 @@
 
     async function fetchRates() {
         try {
-            // Verileri USD tabanlı çekiyoruz
             const response = await fetch('https://open.er-api.com/v6/latest/USD');
             const data = await response.json();
-            
             if (data.result === "success") {
                 rates = data.rates;
-                // USD değerini 1 yapıyoruz
-                document.getElementById('USD').value = 1;
+                const usdInput = document.getElementById('USD');
+                usdInput.value = "1"; // Başlangıç odağı USD: 1
                 updateValues('USD');
             }
-        } catch (error) {
-            console.error("Hata: Kurlar yüklenemedi.", error);
-        }
+        } catch (error) { console.error("Kurlar alınamadı."); }
     }
 
     function updateValues(sourceId) {
-        const sourceValue = parseFloat(document.getElementById(sourceId).value);
+        const inputEl = document.getElementById(sourceId);
+        // Virgülü noktaya çevirip sayıya dönüştür
+        let rawValue = inputEl.value.replace(',', '.');
+        let sourceValue = parseFloat(rawValue);
 
         if (isNaN(sourceValue)) {
             currencies.forEach(c => { if (c !== sourceId) document.getElementById(c).value = ""; });
             return;
         }
 
-        // Girilen değeri USD karşılığına çevir (Base: USD)
         const valueInUSD = sourceValue / rates[sourceId];
 
         currencies.forEach(targetId => {
             if (targetId !== sourceId) {
                 const result = valueInUSD * rates[targetId];
-                // Çok küçük değerler (Japon Yeni gibi) veya büyük değerler için hassas ayar
-                document.getElementById(targetId).value = result.toFixed(result < 0.1 ? 4 : 2);
+                // Diğer alanları Türkçe formatında (virgüllü) yazdır
+                document.getElementById(targetId).value = trFormatter.format(result);
             }
         });
     }
@@ -198,7 +159,15 @@
     fetchRates();
 
     currencies.forEach(id => {
-        document.getElementById(id).addEventListener('input', () => updateValues(id));
+        const el = document.getElementById(id);
+        el.addEventListener('input', (e) => {
+            // Sadece sayı ve virgül girişine izin ver (isteğe bağlı)
+            e.target.value = e.target.value.replace(/[^0-9,.]/g, '');
+            updateValues(id);
+        });
+        
+        // Inputa tıklandığında içeriği temizlemesi veya seçmesi kolaylık sağlar
+        el.addEventListener('focus', (e) => e.target.select());
     });
 </script>
 
