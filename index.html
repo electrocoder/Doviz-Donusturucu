@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Döviz Çevirici - TR Format</title>
+    <title>Döviz Çevirici - USD Odaklı</title>
     <style>
         :root {
             --primary-color: #059669;
@@ -84,7 +84,6 @@
     const listEl = document.getElementById('converter-list');
     let rates = {};
 
-    // TR Formatında sayı formatlama (virgüllü)
     const trFormatter = new Intl.NumberFormat('tr-TR', {
         minimumFractionDigits: 2,
         maximumFractionDigits: 4
@@ -113,15 +112,18 @@
             if (data.result === "success") {
                 rates = data.rates;
                 const usdInput = document.getElementById('USD');
-                usdInput.value = "1"; // Başlangıç odağı USD: 1
+                usdInput.value = "1"; 
                 updateValues('USD');
+                
+                // Sayfa yüklendiğinde USD alanına odaklan ve metni seç
+                usdInput.focus();
+                usdInput.select();
             }
         } catch (error) { console.error("Kurlar alınamadı."); }
     }
 
     function updateValues(sourceId) {
         const inputEl = document.getElementById(sourceId);
-        // Virgülü noktaya çevirip sayıya dönüştür
         let rawValue = inputEl.value.replace(',', '.');
         let sourceValue = parseFloat(rawValue);
 
@@ -135,7 +137,6 @@
         currencies.forEach(targetId => {
             if (targetId !== sourceId) {
                 const result = valueInUSD * rates[targetId];
-                // Diğer alanları Türkçe formatında (virgüllü) yazdır
                 document.getElementById(targetId).value = trFormatter.format(result);
             }
         });
@@ -161,12 +162,9 @@
     currencies.forEach(id => {
         const el = document.getElementById(id);
         el.addEventListener('input', (e) => {
-            // Sadece sayı ve virgül girişine izin ver (isteğe bağlı)
             e.target.value = e.target.value.replace(/[^0-9,.]/g, '');
             updateValues(id);
         });
-        
-        // Inputa tıklandığında içeriği temizlemesi veya seçmesi kolaylık sağlar
         el.addEventListener('focus', (e) => e.target.select());
     });
 </script>
